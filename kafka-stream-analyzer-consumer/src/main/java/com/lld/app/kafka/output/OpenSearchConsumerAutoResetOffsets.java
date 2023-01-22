@@ -7,8 +7,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.opensearch.action.bulk.BulkRequest;
-import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.RequestOptions;
@@ -23,11 +21,10 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
-public class OpenSearchConsumer {
+public class OpenSearchConsumerAutoResetOffsets {
     
-    private static final Logger log = LoggerFactory.getLogger(OpenSearchConsumer.class.getSimpleName());
+    private static final Logger log = LoggerFactory.getLogger(OpenSearchConsumerAutoResetOffsets.class.getSimpleName());
 
     public static void main(String[] args) {
         // Create OpenSearch client
@@ -59,9 +56,6 @@ public class OpenSearchConsumer {
                 int recordCount = records.count();
                 log.info("Received record_count: " + recordCount + " records");
 
-                // TODO: Do this when ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG is false
-                // BulkRequest bulkRequest = new BulkRequest();
-
                 for (ConsumerRecord<String, String> record: records) {
                     try {
                         // Send the records to OpenSearch
@@ -76,36 +70,16 @@ public class OpenSearchConsumer {
                                 .source(record.value(), XContentType.JSON)
                                 .id(id);
 
-                        // TODO: Do this when ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG is false
-                        // bulkRequest.add(indexRequest);
-
                         IndexResponse indexResponse = restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
                         log.info("Inserted one document into OpenSearch with _id : " + indexResponse.getId());
                     } catch (Exception exp) {
                         log.error(String.valueOf(exp));
                     }
                 }
-
-                // TODO: Commit offsets after the batch is consumed - when ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG is false
-                //if (bulkRequest.numberOfActions() > 0) {
-                //    BulkResponse bulkResponse = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
-                //    log.info("Inserted : " + bulkResponse.getItems().length);
-
-                //    TimeUnit.MILLISECONDS.sleep(1000);
-
-                //    kafkaConsumer.commitSync();
-                //    log.info("Offsets committed");
-                //}
             }
         } catch (IOException e) {
             log.error(String.valueOf(e));
-        //} catch (InterruptedException e) {
-        //    throw new RuntimeException(e);
         }
-
-        // Main code logic
-
-        // Close things
     }
 
     private static String extractId(String value) {
